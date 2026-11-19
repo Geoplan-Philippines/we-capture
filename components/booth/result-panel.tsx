@@ -1,6 +1,6 @@
 "use client";
 
-import { CloudOff, LoaderCircle, RefreshCw, RotateCcw } from "lucide-react";
+import { CloudOff, ExternalLink, LoaderCircle, RefreshCw, RotateCcw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
 import { CornerBrackets } from "@/components/corner-brackets";
@@ -98,7 +98,17 @@ export function ResultPanel({
                 </div>
                 <CornerBrackets size="3.2vh" thickness="0.5vh" offset="1.4vh" />
               </div>
-              <p className="mt-[4vh] max-w-[30ch] text-[clamp(1.05rem,2.5vh,1.7rem)] leading-snug text-ice">
+              {/* Same link as the QR, so staff can open the download page here to check it. */}
+              <a
+                href={state.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-[3.6vh] inline-flex max-w-full min-h-11 items-center gap-[1vh] text-[clamp(0.9rem,2vh,1.3rem)] text-mist underline decoration-line underline-offset-4 active:text-white"
+              >
+                <ExternalLink className="size-[2.2vh] shrink-0" aria-hidden />
+                <span className="truncate">{state.url.replace(/^https?:\/\//, "")}</span>
+              </a>
+              <p className="mt-[2vh] max-w-[30ch] text-[clamp(1.05rem,2.5vh,1.7rem)] leading-snug text-ice">
                 Point your phone camera at the code, then open the link.
               </p>
             </motion.div>

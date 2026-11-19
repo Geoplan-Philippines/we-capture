@@ -1,7 +1,7 @@
 "use client";
 
 import { Download, LoaderCircle } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type SubmitEvent } from "react";
 import { event } from "@/lib/event";
 import { EMAIL_MAX, NAME_MAX, validateLead, type LeadErrors } from "@/lib/lead";
 import { downloadFileName } from "@/lib/photo-id";
@@ -23,7 +23,7 @@ export function LeadForm({ photoId }: { photoId: string }) {
     if (status.kind === "done") link.current?.click();
   }, [status]);
 
-  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
     const input = { name: data.get("name"), email: data.get("email") };
