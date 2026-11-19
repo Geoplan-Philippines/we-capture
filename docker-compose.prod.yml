@@ -1,0 +1,37 @@
+# Standalone VPS configuration. Install as ~/docker-apps/wecapture-docker/docker-compose.yml.
+# Do not merge with the local docker-compose.yml.
+services:
+  wecapture:
+    image: geoplanoperation/wecapture:${TAG:-latest}
+    container_name: wecapture
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PUBLIC_BASE_URL: https://wecapture.geoplanph.com
+      LEADS_CSV_PATH: /data/leads.csv
+    volumes:
+      - wecapture-data:/data
+    networks:
+      - geo-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=geo-network"
+      - "traefik.http.routers.wecapture-prod.rule=Host(`wecapture.geoplanph.com`)"
+      - "traefik.http.routers.wecapture-prod.entrypoints=websecure"
+      - "traefik.http.routers.wecapture-prod.tls=true"
+      - "traefik.http.routers.wecapture-prod.service=wecapture-prod-service"
+      - "traefik.http.services.wecapture-prod-service.loadbalancer.server.port=3000"
+      - "traefik.http.routers.wecapture-http.rule=Host(`wecapture.geoplanph.com`)"
+      - "traefik.http.routers.wecapture-http.entrypoints=web"
+      - "traefik.http.routers.wecapture-http.middlewares=wecapture-redirect-to-https"
+      - "traefik.http.routers.wecapture-http.service=wecapture-prod-service"
+      - "traefik.http.middlewares.wecapture-redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.wecapture-redirect-to-https.redirectscheme.permanent=true"
+
+volumes:
+  wecapture-data:
+
+networks:
+  geo-network:
+    external: true

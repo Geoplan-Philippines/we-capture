@@ -54,6 +54,16 @@ The image uses Next.js standalone output and runs as a non-root user. Compose re
 
 Behind a reverse proxy, allow request bodies of at least 100 MB on `/api/upload`: a 6-photo grid from a 4K camera is a large PNG.
 
+### Production CI/CD and VPS setup
+
+Pushes to `main` run lint, build, and Docker smoke tests, then publish
+`geoplanoperation/wecapture:latest` and deploy over SSH to
+`https://wecapture.geoplanph.com`. No database or migration step is needed.
+
+See [the deployment guide](docs/deployment.md) for GitHub secrets, one-time VPS
+setup, and the replacement [production Compose file](docker-compose.prod.yml).
+Keep the default `docker-compose.yml` for local development.
+
 ## Running the booth
 
 - Open the booth in Chrome or Edge, full screen (`--kiosk`, or the **Full screen** button in settings). The camera needs HTTPS or `localhost`.
