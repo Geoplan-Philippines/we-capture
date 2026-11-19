@@ -1,0 +1,17 @@
+services:
+  we-capture:
+    build: .
+    image: we-capture:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    # R2 credentials, PUBLIC_BASE_URL, LEADS_CSV_PATH. See .env.example.
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      # Leads CSV lives here; photos live in R2. Both survive container restarts.
+      - we-capture-data:/data
+
+volumes:
+  we-capture-data:
