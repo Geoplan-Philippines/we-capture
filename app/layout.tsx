@@ -1,34 +1,31 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { Providers } from "@/components/providers";
+import type { Metadata, Viewport } from "next";
+import type { CSSProperties } from "react";
+import { event } from "@/lib/event";
+import { archivo } from "@/lib/fonts";
 import { site } from "@/lib/site";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
     default: site.name,
-    template: `%s — ${site.name}`,
+    template: `%s · ${site.name}`,
   },
   description: site.description,
-  openGraph: {
-    type: "website",
-    url: site.url,
-    siteName: site.name,
-    title: site.name,
-    description: site.description,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: site.name,
-    description: site.description,
-  },
+  robots: { index: false, follow: false },
 };
+
+export const viewport: Viewport = {
+  themeColor: event.colors.night,
+  colorScheme: "dark",
+};
+
+const eventColors = {
+  "--event-night": event.colors.night,
+  "--event-primary": event.colors.primary,
+  "--event-accent": event.colors.accent,
+  "--event-panel": event.colors.panel,
+} as CSSProperties;
 
 export default function RootLayout({
   children,
@@ -36,10 +33,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
-      </body>
+    <html lang="en" className={`${archivo.variable} h-full antialiased`} style={eventColors}>
+      <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
   );
 }

@@ -1,44 +1,58 @@
 @import "tailwindcss";
 
+/*
+ * Event colors come from lib/event.ts and are set as --event-* variables on
+ * <html> in app/layout.tsx, so a new event re-themes everything from one file.
+ */
 @theme inline {
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --color-night: var(--event-night);
+  --color-primary: var(--event-primary);
+  --color-accent: var(--event-accent);
+  --color-panel: var(--event-panel);
 }
 
-/* Design tokens — edit these per project */
 @theme {
-  --color-background: #ffffff;
-  --color-foreground: #0a0a0a;
+  /* Text on the night background */
+  --color-ice: #e6edf8;
+  --color-mist: #9fb1cf;
+  --color-line: rgb(230 237 248 / 0.16);
+  --color-danger: #ff8a7a;
 }
 
-/* Lenis recommended styles — https://lenis.darkroom.engineering */
-html.lenis,
-html.lenis body {
-  height: auto;
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--event-night);
+    color: var(--color-ice);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--event-accent);
+    outline-offset: 3px;
+  }
 }
 
-.lenis:not(.lenis-autoToggle).lenis-stopped {
-  overflow: clip;
+/* Expanded display type: countdown digits, step numbers, headings. */
+@utility font-display {
+  font-family: var(--font-sans);
+  font-stretch: 125%;
 }
 
-.lenis [data-lenis-prevent],
-.lenis [data-lenis-prevent-wheel],
-.lenis [data-lenis-prevent-touch],
-.lenis [data-lenis-prevent-vertical],
-.lenis [data-lenis-prevent-horizontal] {
-  overscroll-behavior: contain;
+@utility tabular {
+  font-variant-numeric: tabular-nums;
 }
 
-.lenis.lenis-smooth iframe {
-  pointer-events: none;
-}
-
-.lenis.lenis-autoToggle {
-  transition-property: overflow;
-  transition-duration: 1ms;
-  transition-behavior: allow-discrete;
-}
-
-body {
-  background: var(--color-background);
-  color: var(--color-foreground);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

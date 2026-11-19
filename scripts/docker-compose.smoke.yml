@@ -1,0 +1,21 @@
+# Overlay for scripts/docker-smoke.sh: swaps R2 for a local S3-compatible
+# server (moto) so the container can be tested without real credentials.
+services:
+  s3:
+    image: motoserver/moto:latest
+    environment:
+      S3_IGNORE_SUBDOMAIN_BUCKETNAME: "true"
+    ports:
+      - "5000:5000"
+
+  we-capture:
+    depends_on:
+      - s3
+    environment:
+      R2_ENDPOINT: http://s3:5000
+      R2_ACCOUNT_ID: ""
+      R2_ACCESS_KEY_ID: test
+      R2_SECRET_ACCESS_KEY: test
+      R2_BUCKET: we-capture
+      PUBLIC_BASE_URL: http://localhost:3000
+      LEADS_CSV_PATH: /data/leads.csv

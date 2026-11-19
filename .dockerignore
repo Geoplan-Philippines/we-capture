@@ -1,0 +1,15 @@
+# Never bake credentials into the image: pass them at runtime (docker compose reads .env).
+.env
+.env.*
+!.env.example
+
+.git
+.github
+.next
+node_modules
+data
+docs
+*.log
+.claude
+.agents
+.omp
