@@ -35,7 +35,7 @@ export function LogoPanel({ height, className }: { height: string; className?: s
             width={logo.width}
             height={logo.height}
             unoptimized
-            priority
+            loading="eager"
             draggable={false}
             className="w-auto shrink-0 select-none"
             style={{ height: `calc(${height} * ${logoHeightFactor(logo).toFixed(3)})` }}
