@@ -88,3 +88,6 @@ jobs:
               exit 1
             fi
             echo "Deployed geoplanoperation/wecapture:$TAG"
+            # Remove dangling images only; keep tagged rollback images and all volumes.
+            echo "Pruning dangling Docker images..."
+            docker image prune -f
