@@ -75,6 +75,15 @@ export async function objectExists(key: string): Promise<boolean> {
   }
 }
 
+/**
+ * `ready`: the full PNG is stored. `pending`: only the preview is, and the
+ * booth is still sending the PNG. `missing`: no such photo.
+ */
+export async function photoState(id: string): Promise<"ready" | "pending" | "missing"> {
+  if (await objectExists(photoKey(id))) return "ready";
+  return (await objectExists(previewKey(id))) ? "pending" : "missing";
+}
+
 export type StoredObject = {
   body: ReadableStream;
   contentType: string;

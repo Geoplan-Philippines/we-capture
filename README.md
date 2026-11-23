@@ -10,8 +10,8 @@ First event: **MIA 2026**, Geoplan × Meralco, "Transcending Excellence Through 
 
 1. **Booth** (`/`): steps screen → pick 3 or 6 photos → Start. Each shot gets a 3-2-1 countdown and a shutter flash, then a short review. 3 photos make a vertical strip; 6 make a 2×3 grid.
 2. **Frame**: the shots are composed on a canvas at the camera's full resolution with the event background, logo panel, and theme line. Each slot is exactly the size of the camera frame, so nothing is cropped or shrunk, whether the camera is landscape or portrait.
-3. **Upload**: the PNG (plus a small JPEG preview) goes to `/api/upload`, which stores it in Cloudflare R2 as `photos/<id>.png` under a random 128-bit id. The QR code appears only after the upload succeeds; a failed upload shows **Try again**.
-4. **Download** (`/d/<id>`): mobile page with the photo preview and a name + email form. Submitting appends a row to the leads CSV and downloads `we-capture-<id>.png`. Links don't expire. Unknown ids show a not-found page.
+3. **Upload**: a small JPEG preview goes to `/api/upload` first, which stores it in Cloudflare R2 under a random 128-bit id and returns the link, so the QR code appears within seconds. The full PNG is encoded and sent in the background (`PUT /api/upload/<id>`, authorized by a per-photo token) and lands as `photos/<id>.png`; it retries on its own and keeps going after the booth resets for the next visitor. A failed preview upload shows **Try again**; a failed PNG shows **Send again** under the QR.
+4. **Download** (`/d/<id>`): mobile page with the photo preview and a name + email form. Submitting appends a row to the leads CSV and downloads `we-capture-<id>.png`. If the visitor gets there before the PNG has arrived, the page waits for it (up to 4 minutes) and then starts the download. Links don't expire. Unknown ids show a not-found page.
 
 The result screen returns to the steps screen after 60 seconds untouched.
 
@@ -52,7 +52,7 @@ The image uses Next.js standalone output and runs as a non-root user. Compose re
 
 `scripts/docker-smoke.sh` builds the image, runs it against a local S3 stand-in, and checks upload, download page, lead row, download, unknown id, and that the link and CSV survive a container recreate. CI runs it on every pull request.
 
-Behind a reverse proxy, allow request bodies of at least 100 MB on `/api/upload`: a 6-photo grid from a 4K camera is a large PNG.
+Behind a reverse proxy, allow request bodies of at least 200 MB on `/api/upload/*`: a 6-photo grid from a 4K camera is a large PNG.
 
 ### Production CI/CD and VPS setup
 

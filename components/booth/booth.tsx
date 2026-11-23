@@ -12,14 +12,14 @@ import {
 import { CameraController, effectiveSize } from "@/lib/booth/camera";
 import { boothTimings, type PhotoCount } from "@/lib/booth/config";
 import { loadSettings, saveSettings, type BoothSettings } from "@/lib/booth/settings";
-import { sleep, uploadPhoto } from "@/lib/booth/upload";
+import { sleep, uploadFullPhoto, uploadPreview, type StartedPhoto } from "@/lib/booth/upload";
 import { event } from "@/lib/event";
 import { archivo } from "@/lib/fonts";
 import { canvasToBlob, composeFrame, previewBlob } from "@/lib/frame/compose";
 import { frameKindFor, shotCount, type FrameKind } from "@/lib/frame/layout";
 import { CameraStatus } from "./camera-status";
 import { CaptureChrome, CaptureOverlay } from "./capture-overlay";
-import { ResultPanel, type ResultState } from "./result-panel";
+import { ResultPanel, type FullUpload, type ResultState } from "./result-panel";
 import { SettingsSheet } from "./settings-sheet";
 import { StepsPanel } from "./steps-panel";
 import { Viewfinder } from "./viewfinder";
@@ -43,7 +43,10 @@ export type CaptureView = {
 type Session = {
   abort: AbortController;
   urls: string[];
-  upload: { png: Blob; preview: Blob } | null;
+  /** The PNG encodes while the preview uploads and the QR is on screen. */
+  upload: { preview: Blob; png: Promise<Blob> } | null;
+  /** Set once the preview is stored and the QR link works. */
+  photo: StartedPhoto | null;
 };
 
 const SPRING = { type: "spring", stiffness: 140, damping: 24, mass: 0.9 } as const;
@@ -100,14 +103,33 @@ export default function Booth() {
 
   useEffect(() => endSession, [endSession]);
 
+  /** Sends the full PNG in the background; its progress shows under the QR. */
+  const sendFullPhoto = (current: Session) => {
+    const { photo, upload } = current;
+    if (!photo || !upload) return;
+    const show = (full: FullUpload) => {
+      if (session.current !== current) return;
+      setResult((r) => (r.status === "ready" && r.id === photo.id ? { ...r, full } : r));
+    };
+    show("sending");
+    uploadFullPhoto(photo, upload.png).then(
+      () => show("saved"),
+      (error) => {
+        console.error(`Full photo ${photo.id} was not saved`, error);
+        show("failed");
+      },
+    );
+  };
+
   const runUpload = async (current: Session, previewUrl: string, width: number, height: number) => {
     if (!current.upload) return;
     setResetAt(null);
     setResult({ status: "uploading", previewUrl, width, height });
     try {
-      const { id, url } = await uploadPhoto(current.upload.png, current.upload.preview, current.abort.signal);
+      const { id, url } = (current.photo ??= await uploadPreview(current.upload.preview, current.abort.signal));
       if (session.current !== current) return;
-      setResult({ status: "ready", previewUrl, width, height, id, url });
+      setResult({ status: "ready", previewUrl, width, height, id, url, full: "sending" });
+      sendFullPhoto(current);
     } catch (error) {
       if (session.current !== current) return;
       setResult({
@@ -126,7 +148,7 @@ export default function Booth() {
     const kind = frameKindFor(count);
     const total = shotCount(kind);
     const { rotation, mirrorOutput } = settings;
-    const current: Session = { abort: new AbortController(), urls: [], upload: null };
+    const current: Session = { abort: new AbortController(), urls: [], upload: null, photo: null };
     const { signal } = current.abort;
     session.current = current;
 
@@ -162,11 +184,12 @@ export default function Booth() {
         archivo.style.fontFamily,
       );
       shots.length = 0; // release the full-size frames
-      const [png, preview] = await Promise.all([
-        canvasToBlob(composed.canvas, "image/png"),
-        previewBlob(composed.canvas, 2000, 0.86),
-      ]);
+      // The QR only needs the preview. The full PNG (often 100+ MB at 4K) is
+      // encoded and sent after the QR is already on screen.
+      const preview = await previewBlob(composed.canvas, 2000, 0.86);
       if (signal.aborted) return;
+      const png = canvasToBlob(composed.canvas, "image/png");
+      png.catch(() => {}); // surfaced by uploadFullPhoto
       const previewUrl = URL.createObjectURL(preview);
       current.urls.push(previewUrl);
       current.upload = { png, preview };
@@ -185,8 +208,11 @@ export default function Booth() {
 
   const retryUpload = () => {
     const current = session.current;
-    if (current?.upload && result.status === "failed" && result.previewUrl) {
+    if (!current?.upload) return;
+    if (result.status === "failed" && result.previewUrl) {
       void runUpload(current, result.previewUrl, result.width ?? 0, result.height ?? 0);
+    } else if (result.status === "ready" && result.full === "failed") {
+      sendFullPhoto(current);
     }
   };
 

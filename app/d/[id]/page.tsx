@@ -4,7 +4,7 @@ import { LeadForm } from "@/components/download/lead-form";
 import { LogoPanel } from "@/components/logo-panel";
 import { event } from "@/lib/event";
 import { isPhotoId } from "@/lib/photo-id";
-import { objectExists, photoKey } from "@/lib/server/storage";
+import { photoState } from "@/lib/server/storage";
 
 export const metadata: Metadata = {
   title: "Your photo",
@@ -13,7 +13,10 @@ export const metadata: Metadata = {
 
 export default async function DownloadPage(props: PageProps<"/d/[id]">) {
   const { id } = await props.params;
-  if (!isPhotoId(id) || !(await objectExists(photoKey(id)))) notFound();
+  if (!isPhotoId(id)) notFound();
+  // The QR shows as soon as the preview is stored; the PNG may still be on its way.
+  const state = await photoState(id);
+  if (state === "missing") notFound();
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden">
@@ -36,7 +39,7 @@ export default async function DownloadPage(props: PageProps<"/d/[id]">) {
           className="mx-auto mt-6 block h-auto max-h-[52svh] w-auto max-w-full rounded-[3px] bg-white/5 shadow-[0_16px_40px_rgb(0_0_0/0.45)]"
         />
 
-        <LeadForm photoId={id} />
+        <LeadForm photoId={id} initiallyReady={state === "ready"} />
       </main>
     </div>
   );

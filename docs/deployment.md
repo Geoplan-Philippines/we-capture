@@ -145,8 +145,8 @@ Back up that volume; do **not** run `docker compose down -v` in production. If l
 already exist elsewhere, back them up and migrate them to `/data/leads.csv`
 with ownership writable by the container's `node` user (UID 1000).
 
-Allow request bodies of at least **100 MB** through any proxy/CDN on
-`/api/upload`. The health check confirms the HTTP server is running, not that
+Allow request bodies of at least **200 MB** through any proxy/CDN on
+`/api/upload/*`: the booth PUTs the full PNG there after the QR is shown. The health check confirms the HTTP server is running, not that
 R2 credentials are valid: test the full booth → QR → download flow after the
 first deployment.
 

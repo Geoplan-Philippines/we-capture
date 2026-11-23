@@ -1,6 +1,6 @@
 "use client";
 
-import { CloudOff, ExternalLink, LoaderCircle, RefreshCw, RotateCcw } from "lucide-react";
+import { CircleCheck, CloudAlert, CloudOff, ExternalLink, LoaderCircle, RefreshCw, RotateCcw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
 import { CornerBrackets } from "@/components/corner-brackets";
@@ -8,10 +8,21 @@ import { boothTimings } from "@/lib/booth/config";
 import type { FrameKind } from "@/lib/frame/layout";
 import { MiniFrame } from "./mini-frame";
 
+/** The full-size PNG, sent after the QR is already showing. */
+export type FullUpload = "sending" | "saved" | "failed";
+
 export type ResultState =
   | { status: "composing" }
   | { status: "uploading"; previewUrl: string; width: number; height: number }
-  | { status: "ready"; previewUrl: string; width: number; height: number; id: string; url: string }
+  | {
+      status: "ready";
+      previewUrl: string;
+      width: number;
+      height: number;
+      id: string;
+      url: string;
+      full: FullUpload;
+    }
   | { status: "failed"; message: string; previewUrl?: string; width?: number; height?: number };
 
 export function ResultPanel({
@@ -111,6 +122,7 @@ export function ResultPanel({
               <p className="mt-[2vh] max-w-[30ch] text-[clamp(1.05rem,2.5vh,1.7rem)] leading-snug text-ice">
                 Point your phone camera at the code, then open the link.
               </p>
+              <FullUploadStatus full={state.full} onRetry={onRetry} />
             </motion.div>
           ) : state.status === "failed" ? (
             <motion.div
@@ -174,6 +186,38 @@ export function ResultPanel({
         ) : null}
       </div>
     </motion.section>
+  );
+}
+
+/** Small line for staff: whether the full-size PNG has reached storage. */
+function FullUploadStatus({ full, onRetry }: { full: FullUpload; onRetry: () => void }) {
+  const text = "text-[clamp(0.9rem,2vh,1.3rem)]";
+  const icon = "size-[2.2vh] shrink-0";
+  if (full === "failed") {
+    return (
+      <div className={`mt-[2vh] flex flex-wrap items-center gap-[1.4vh] ${text} text-danger`} role="alert">
+        <CloudAlert className={icon} aria-hidden />
+        <span>The full-size photo didn&apos;t send.</span>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex min-h-11 items-center gap-[0.8vh] rounded-[1vh] border-2 border-danger/70 px-[1.6vh] font-semibold text-white active:bg-white/10"
+        >
+          <RefreshCw className={icon} aria-hidden />
+          Send again
+        </button>
+      </div>
+    );
+  }
+  return (
+    <p className={`mt-[2vh] inline-flex items-center gap-[1vh] ${text} text-mist`} aria-live="polite">
+      {full === "sending" ? (
+        <LoaderCircle className={`${icon} animate-spin`} aria-hidden />
+      ) : (
+        <CircleCheck className={icon} aria-hidden />
+      )}
+      {full === "sending" ? "Sending the full-size photo" : "Full-size photo saved"}
+    </p>
   );
 }
 

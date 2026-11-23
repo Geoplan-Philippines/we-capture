@@ -8,8 +8,12 @@ export const boothTimings = {
   reviewMs: 1600,
   /** Result screen returns to the steps screen after this long untouched. */
   idleResetSeconds: 60,
-  /** Give up on an upload that hasn't finished after this long. */
-  uploadTimeoutMs: 120_000,
+  /** Give up on a preview upload (the QR waits on it) after this long. */
+  uploadTimeoutMs: 60_000,
+  /** One attempt at sending the full-size PNG; it can be 100+ MB. */
+  fullUploadTimeoutMs: 300_000,
+  /** Waits between full-PNG attempts. Its length is the number of retries. */
+  fullUploadRetryDelaysMs: [2_000, 5_000, 15_000],
 } as const;
 
 export const PHOTO_COUNTS = [3, 6] as const;

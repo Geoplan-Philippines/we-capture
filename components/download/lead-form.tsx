@@ -10,13 +10,22 @@ import { cn } from "@/lib/utils";
 type Status =
   | { kind: "idle" }
   | { kind: "sending" }
+  /** Lead saved; the booth is still sending the full-size PNG. */
+  | { kind: "waiting" }
   | { kind: "done"; downloadUrl: string }
   | { kind: "error"; message: string };
 
-export function LeadForm({ photoId }: { photoId: string }) {
+// How long the phone waits for the booth's PNG before asking the visitor to retry.
+const WAIT_FOR_PHOTO_MS = 4 * 60 * 1000;
+const POLL_MS = 2000;
+
+export function LeadForm({ photoId, initiallyReady }: { photoId: string; initiallyReady: boolean }) {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [errors, setErrors] = useState<LeadErrors>({});
   const link = useRef<HTMLAnchorElement>(null);
+  const ready = useRef(initiallyReady);
+  // Set once the lead is saved, so a retry only waits for the photo again.
+  const savedUrl = useRef<string | null>(null);
 
   // Start the download as soon as the link is on screen; it stays for a second try.
   useEffect(() => {
@@ -33,6 +42,8 @@ export function LeadForm({ photoId }: { photoId: string }) {
       return;
     }
     setErrors({});
+
+    if (savedUrl.current) return finish(savedUrl.current);
     setStatus({ kind: "sending" });
 
     try {
@@ -51,10 +62,27 @@ export function LeadForm({ photoId }: { photoId: string }) {
         setStatus({ kind: "error", message: body.error ?? "Couldn't save your details. Try again." });
         return;
       }
-      setStatus({ kind: "done", downloadUrl: body.downloadUrl });
+      savedUrl.current = body.downloadUrl;
     } catch {
       setStatus({ kind: "error", message: "No connection. Check your internet and try again." });
+      return;
     }
+    await finish(savedUrl.current);
+  };
+
+  const finish = async (downloadUrl: string) => {
+    if (!ready.current) {
+      setStatus({ kind: "waiting" });
+      ready.current = await waitForPhoto(photoId, Date.now() + WAIT_FOR_PHOTO_MS);
+      if (!ready.current) {
+        setStatus({
+          kind: "error",
+          message: "Your photo is still on its way from the booth. Keep this page open and try again in a moment.",
+        });
+        return;
+      }
+    }
+    setStatus({ kind: "done", downloadUrl });
   };
 
   if (status.kind === "done") {
@@ -77,7 +105,7 @@ export function LeadForm({ photoId }: { photoId: string }) {
     );
   }
 
-  const sending = status.kind === "sending";
+  const sending = status.kind === "sending" || status.kind === "waiting";
   return (
     <form onSubmit={onSubmit} noValidate className="mt-7 flex flex-col gap-5">
       <p className="text-center text-base leading-relaxed text-mist">
@@ -116,11 +144,31 @@ export function LeadForm({ photoId }: { photoId: string }) {
         ) : (
           <Download className="size-5" aria-hidden />
         )}
-        {sending ? "Saving" : "Download photo"}
+        {status.kind === "waiting" ? "Finishing your photo" : sending ? "Saving" : "Download photo"}
       </button>
+      {status.kind === "waiting" ? (
+        <p className="-mt-2 text-center text-base leading-relaxed text-mist" aria-live="polite">
+          The booth is still sending the full-size photo. Your download starts as soon as it arrives.
+        </p>
+      ) : null}
       <p className="text-center text-sm leading-relaxed text-mist/80">{event.privacyNote}</p>
     </form>
   );
+}
+
+/** Polls until the booth's PNG is stored, or the deadline passes. */
+async function waitForPhoto(photoId: string, deadline: number): Promise<boolean> {
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`/api/photos/${photoId}/status`, { cache: "no-store" });
+      const body = (await response.json().catch(() => ({}))) as { ready?: boolean };
+      if (response.ok && body.ready) return true;
+    } catch {
+      // Phone lost signal for a moment; keep trying until the deadline.
+    }
+    await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+  }
+  return false;
 }
 
 function Field({

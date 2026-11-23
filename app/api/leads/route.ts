@@ -1,7 +1,7 @@
 import { validateLead } from "@/lib/lead";
 import { isPhotoId } from "@/lib/photo-id";
 import { appendLead } from "@/lib/server/leads";
-import { objectExists, photoKey } from "@/lib/server/storage";
+import { photoState } from "@/lib/server/storage";
 
 const MAX_BODY_BYTES = 4 * 1024;
 
@@ -26,7 +26,8 @@ export async function POST(request: Request) {
   if (!result.ok) return json(422, { error: "Check the highlighted fields.", fields: result.errors });
 
   try {
-    if (!(await objectExists(photoKey(body.photoId)))) {
+    // A pending photo still takes the lead; the download page waits for the PNG.
+    if ((await photoState(body.photoId)) === "missing") {
       return json(404, { error: "Photo not found." });
     }
   } catch (error) {
